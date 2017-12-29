@@ -412,8 +412,6 @@ CASE("copy constructor") {
     ben::either<std::string, int> f(e);
     EXPECT(e.is_left());
     EXPECT(f.is_left());
-    const bool equal = e.as_left().c_str() == f.as_left().c_str();
-    EXPECT_NOT(equal); // memory addr different
     EXPECT(e.as_left() == f.as_left()); // contents the same
 }
 
@@ -422,8 +420,6 @@ CASE("copy assignment") {
     ben::either<std::string, int> f = e;
     EXPECT(e.is_left());
     EXPECT(f.is_left());
-    const bool equal = e.as_left().c_str() == f.as_left().c_str();
-    EXPECT_NOT(equal); // memory addr different
     EXPECT(e.as_left() == f.as_left()); // contents the same
 }
 
