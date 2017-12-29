@@ -232,7 +232,7 @@ CASE("slow path and fast path") {
     }
 }
 
-CASE("move constructor error") {
+CASE("move constructor regression") {
     constexpr size_t size = 10;
     using slow_t = std::unique_ptr<char[]>;
     using fast_t = std::array<char, size>;
