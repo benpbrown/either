@@ -1,7 +1,7 @@
 language: cpp
 compiler:
   - gcc
-script: make test-either && valgrind ./test-either -p --order=lexical
+script: make test-either && valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 ./test-either -p --order=lexical
 matrix:
   include:
     # works on Precise and Trusty

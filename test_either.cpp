@@ -525,6 +525,8 @@ CASE("move assignment with overwrite") {
     EXPECT(c == 1);
 }
 
+namespace {
+
 class some_non_pod {
 public:
     some_non_pod() : val_(3) {
@@ -562,6 +564,8 @@ public:
 private:
     int val_;
 };
+
+} // namespace
 
 CASE("test invalid zero state") {
     constexpr size_t size = 10;
