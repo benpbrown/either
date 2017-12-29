@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+
 #include "either.hpp"
 #include "lest.hpp"
 
@@ -18,15 +20,15 @@ void compiles_impl() {
 }
 
 CASE("compiles") {
-    using large = std::array<int, 5>;
-    using small = bool;
+    using large = std::array<int, 500>;
+    using small = std::array<int, 256>;
     compiles_impl<large, small>();
     compiles_impl<small, large>();
-    EXPECT(sizeof(ben::either<large, small>) == sizeof(bool) + std::max(sizeof(large), sizeof(small)));
+    EXPECT(sizeof(ben::either<large, small>) < sizeof(large) + sizeof(small));
 }
 
 CASE("basic") {
-    auto get_either = [](const std::string input, bool is_string) -> ben::either<std::string, std::vector<char>> {
+    auto get_either = [](const std::string& input, bool is_string) -> ben::either<std::string, std::vector<char>> {
         if (is_string) {
             return std::string(input);
         } else {
@@ -232,15 +234,58 @@ CASE("slow path and fast path") {
     }
 }
 
-CASE("move constructor") {
+CASE("move constructor error") {
     constexpr size_t size = 10;
     using slow_t = std::unique_ptr<char[]>;
     using fast_t = std::array<char, size>;
 
     ben::either<slow_t, fast_t> foo(std::make_unique<char[]>(size));
+    EXPECT(foo.is_left());
     const char* ptr = foo.as_left().get();
+    const bool equal = ptr == nullptr;
+    EXPECT_NOT(equal);
+
     ben::either<slow_t, fast_t> quux(std::move(foo));
+    EXPECT(foo.as_left().get() == nullptr);
     EXPECT(ptr == quux.as_left().get());
+}
+
+struct only_movable {
+    only_movable(int* counter) : counter_(counter) {}
+    ~only_movable() {
+        if (counter_) {
+            (*counter_)++;
+        }
+    }
+    only_movable(const only_movable& other) = delete;
+    only_movable(only_movable&& other) : counter_(other.counter_) {
+        other.counter_ = nullptr;
+    }
+    only_movable& operator=(const only_movable& other) = delete;
+    only_movable& operator=(only_movable&& other) {
+        int* c = other.counter_;
+        other.counter_ = nullptr;
+        counter_ = c;
+        return *this;
+    }
+private:
+    int* counter_;
+};
+
+CASE("move only") {
+    int c = 0;
+    {
+        constexpr size_t size = 10;
+        using slow_t = only_movable;
+        using fast_t = std::array<char, size>;
+
+        ben::either<slow_t, fast_t> foo{only_movable{&c}};
+        EXPECT(foo.is_left());
+        EXPECT(c == 0);
+
+        ben::either<slow_t, fast_t> quux(std::move(foo));
+    }
+    EXPECT(c == 1);
 }
 
 CASE("move constructor 2") {
@@ -369,7 +414,8 @@ CASE("copy constructor") {
     ben::either<std::string, int> f(e);
     EXPECT(e.is_left());
     EXPECT(f.is_left());
-    EXPECT_NOT(e.as_left().c_str() == f.as_left().c_str()); // memory addr different
+    const bool equal = e.as_left().c_str() == f.as_left().c_str();
+    EXPECT_NOT(equal); // memory addr different
     EXPECT(e.as_left() == f.as_left()); // contents the same
 }
 
@@ -378,7 +424,8 @@ CASE("copy assignment") {
     ben::either<std::string, int> f = e;
     EXPECT(e.is_left());
     EXPECT(f.is_left());
-    EXPECT_NOT(e.as_left().c_str() == f.as_left().c_str()); // memory addr different
+    const bool equal = e.as_left().c_str() == f.as_left().c_str();
+    EXPECT_NOT(equal); // memory addr different
     EXPECT(e.as_left() == f.as_left()); // contents the same
 }
 
@@ -443,7 +490,7 @@ CASE("copy assignment with overwrite") {
     EXPECT(c == 2);
 }
 
-CASE("move constructor") {
+CASE("move constructor again") {
     bool b = false;
     ben::either<captured_destructable, int> e(captured_destructable{&b});
     EXPECT_NOT(b);
@@ -482,6 +529,55 @@ CASE("move assignment with overwrite") {
         EXPECT(f.as_right() == 24);
     }
     EXPECT(c == 1);
+}
+
+class some_non_pod {
+public:
+    some_non_pod() : val_(3) {
+        assert(val_ != 0);
+    }
+    some_non_pod(int val) : val_(val) {
+        assert(val_ != 0);
+    }
+    ~some_non_pod() {
+        assert(val_ != 0);
+    }
+    some_non_pod(const some_non_pod& other) : val_(other.val_) {
+        assert(val_ != 0);
+    }
+    some_non_pod(some_non_pod&& other) : val_(other.val_) {
+        assert(val_ != 0);
+        other.val_ = -1;
+    }
+    some_non_pod& operator=(const some_non_pod& other) {
+        assert(val_ != 0);
+        val_ = other.val_;
+        return *this;
+    }
+
+    some_non_pod& operator=(some_non_pod&& other) {
+        if (this == &other) {
+            return *this;
+        }
+        assert(val_ != 0);
+        val_ = other.val_;
+        other.val_ = -1;
+        return *this;
+    }
+
+private:
+    int val_;
+};
+
+CASE("test invalid zero state") {
+    constexpr size_t size = 10;
+    using slow_t = some_non_pod;
+    using fast_t = std::array<char, size>;
+
+    ben::either<slow_t, fast_t> foo(some_non_pod{2});
+    EXPECT(foo.is_left());
+
+    ben::either<slow_t, fast_t> quux(std::move(foo));
 }
 
 int main(int argc, char* argv[]) {

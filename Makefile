@@ -1,4 +1,4 @@
-FLAGS=-g -std=c++1z -Wall -Wextra
+FLAGS=-g -std=c++14 -Wall -Wextra
 LEST_FLAGS=-Dlest_FEATURE_COLOURISE=1 -Dlest_FEATURE_AUTO_REGISTER=1
 INCLUDE_FLAGS=-isystem./include/lest
 
@@ -11,7 +11,7 @@ test-either: test_either.cpp either.hpp either.ipp
 
 .PHONY: test
 test: test-either
-	./test-either -p --order=random
+	./test-either -p --order=lexical
 
 clean:
 	@rm -f test-either

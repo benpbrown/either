@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstring>
 
 namespace ben {
 
@@ -43,14 +44,16 @@ public:
     bool operator==(const either& other) const;
 
 private:
-    static constexpr size_t max_size_ = std::max(sizeof(left_type), sizeof(right_type));
-
     template <typename T>
     static void destruct(T& in);
     void destruct_self();
 
-    std::array<char, max_size_> storage_ = {{0}};
     bool left_ = false;
+
+    union {
+        left_type lt_;
+        right_type rt_;
+    };
 };
 
 } // namespace ben

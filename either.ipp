@@ -5,55 +5,55 @@
 namespace ben {
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>::either(const left_type& input) : left_(true) {
-    left_ref() = input;
+either<left_type, right_type>::either(const left_type& input) : left_(true), lt_(input) {
+
 }
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>::either(const right_type& input) : left_(false) {
-    right_ref() = input;
+either<left_type, right_type>::either(const right_type& input) : left_(false), rt_(input) {
+
 }
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>::either(left_type&& input) : left_(true) {
-    left_ref() = std::move(input);
+either<left_type, right_type>::either(left_type&& input) : left_(true), lt_(std::move(input)) {
+
 }
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>::either(right_type&& input) : left_(false) {
-    right_ref() = std::move(input);
+either<left_type, right_type>::either(right_type&& input) : left_(false), rt_(std::move(input)) {
+
 }
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>& either<left_type, right_type>::operator=(const left_type& other) {
-    *this = either(other);
+either<left_type, right_type>& either<left_type, right_type>::operator=(const left_type& input) {
+    *this = either(input);
     return *this;
 }
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>& either<left_type, right_type>::operator=(const right_type& other) {
-    *this = either(other);
+either<left_type, right_type>& either<left_type, right_type>::operator=(const right_type& input) {
+    *this = either(input);
     return *this;
 }
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>& either<left_type, right_type>::operator=(left_type&& other) {
-    *this = either(std::move(other));
+either<left_type, right_type>& either<left_type, right_type>::operator=(left_type&& input) {
+    *this = either(std::move(input));
     return *this;
 }
 
 template <typename left_type, typename right_type>
-either<left_type, right_type>& either<left_type, right_type>::operator=(right_type&& other) {
-    *this = either(std::move(other));
+either<left_type, right_type>& either<left_type, right_type>::operator=(right_type&& input) {
+    *this = either(std::move(input));
     return *this;
 }
 
 template <typename left_type, typename right_type>
 either<left_type, right_type>::either(const either& other) : left_(other.left_) {
     if (other.is_left()) {
-        left_ref() = other.as_left();
+        new (&lt_) left_type(other.lt_);
     } else {
-        right_ref() = other.as_right();
+        new (&rt_) right_type(other.rt_);
     }
 }
 
@@ -64,9 +64,9 @@ either<left_type, right_type>& either<left_type, right_type>::operator=(const ei
     }
     destruct_self();
     if (other.is_left()) {
-        left_ref() = other.as_left();
+        lt_ = other.lt_;
     } else {
-        right_ref() = other.as_right();
+        rt_ = other.rt_;
     }
     left_ = other.left_;
     return *this;
@@ -75,9 +75,9 @@ either<left_type, right_type>& either<left_type, right_type>::operator=(const ei
 template <typename left_type, typename right_type>
 either<left_type, right_type>::either(either&& other) : left_(other.left_) {
     if (other.is_left()) {
-        left_ref() = std::move(other.left_ref());
+        new (&lt_) left_type(std::move(other.lt_));
     } else {
-        right_ref() = std::move(other.right_ref());
+        new (&rt_) right_type(std::move(other.rt_));
     }
 }
 
@@ -88,9 +88,9 @@ either<left_type, right_type>& either<left_type, right_type>::operator=(either&&
     }
     destruct_self();
     if (other.is_left()) {
-        left_ref() = std::move(other.left_ref());
+        lt_ = std::move(other.lt_);
     } else {
-        right_ref() = std::move(other.right_ref());
+        rt_ = std::move(other.rt_);
     }
     left_ = other.left_;
     return *this;
@@ -98,12 +98,12 @@ either<left_type, right_type>& either<left_type, right_type>::operator=(either&&
 
 template <typename left_type, typename right_type>
 const left_type& either<left_type, right_type>::as_left() const {
-    return *reinterpret_cast<const left_type*>(storage_.data());
+    return lt_;
 }
 
 template <typename left_type, typename right_type>
 const right_type& either<left_type, right_type>::as_right() const {
-    return *reinterpret_cast<const right_type*>(storage_.data());
+    return rt_;
 }
 
 template <typename left_type, typename right_type>
@@ -144,12 +144,12 @@ void either<left_type, right_type>::destruct(T& in) {
 
 template <typename left_type, typename right_type>
 left_type& either<left_type, right_type>::left_ref() {
-    return *reinterpret_cast<left_type*>(storage_.data());
+    return lt_;
 }
 
 template <typename left_type, typename right_type>
 right_type& either<left_type, right_type>::right_ref() {
-    return *reinterpret_cast<right_type*>(storage_.data());
+    return rt_;
 }
 
 template <typename left_type, typename right_type>
