@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <unistd.h>
-
 #include "either.hpp"
 #include "lest.hpp"
 
